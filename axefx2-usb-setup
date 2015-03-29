@@ -1,0 +1,165 @@
+#! /bin/bash
+#
+# Install or uninstall the firmware and configuration files needed to enable
+# Linux to establish audio and MIDI connections with a Fractal Audio Systems
+# Axe-FX II attached via USB.
+#
+# Author: David B. Lamkins <david@lamkins.net>
+#
+# This program is based upon the work of Joachim Gahl.
+
+license=loader/FAS-License
+axefx2loadFW=loader/axefx2load.hex
+axefx2loadFW_dir=/usr/share/usb/FractalAudio/axefx2
+udev_rules=55-fractalaudio.rules
+udev_rules_dir=/etc/udev/rules.d
+
+HERE=$(cd $(dirname ${0}) && pwd)
+PGM=$(basename ${0})
+VERSION=1.0.0
+
+fail ()
+{
+	echo -e "\n${PGM}: ${*}"
+	exit 1
+}
+
+notice ()
+{
+	echo -e "\n${*}"
+}
+
+prompt1 ()
+{
+	echo -en "\n${*} "
+	read -n 1 answer
+}
+
+confirm_root ()
+{
+	[ "${USER}" = "root" ] || fail run as root
+}
+
+confirm_kernel ()
+{
+	kv1=$(uname -r|cut -d. -f1)
+	kv2=$(uname -r|cut -d. -f2)
+	kv3=$(uname -r|cut -d. -f3)
+	[ "${kv1}" -gt 2 ] || \
+	[ "${kv1}" -eq 2 -a "${kv2}" -gt 6 ] || \
+        [ "${kv1}" -eq 2 -a "${kv2}" -eq 6 -a "${kv3}" -ge 35 ] || \
+		fail kernel is too old
+}
+
+confirm_fxload ()
+{
+	[ -n "$(whereis -b  fxload|cut -d' ' -f2)" ] \
+		|| fail fxload not found
+	[ -n "$(whereis -bu fxload|cut -d' ' -f2)" ] \
+		&& fail found multiple instances of fxload
+}
+
+confirm_license ()
+{
+	[ -f ${HERE}/${license} ] || fail license file is missing
+}
+
+confirm_firmware ()
+{
+	[ -f ${HERE}/${axefx2loadFW} ] || fail firmware file is missing
+}
+
+confirm_udev_rules_dir ()
+{
+	[ -d ${udev_rules_dir} ] || fail udev rules dir not found
+}
+
+
+reload_udev_rules ()
+{
+	udevadm control --reload-rules \
+		|| notice Reload of udev rules failed. Restart udev or reboot.
+}
+
+help ()
+{
+	cat <<EOF
+usage: ${PGM} [-r UDEV_RULES_DIR] -i|-u
+
+Install or uninstall USB bootloader firmware and udev configuration rules for
+the Fractal Audio Systems Axe-FX II.
+
+Options:
+	-r    path to udev rules directory
+	-i    install
+	-u    uninstall
+	-v    report version and exit
+EOF
+	exit 1
+}
+
+report ()
+{
+	cat <<EOF
+$1 directory ${axefx2loadFW_dir}
+$1 file ${axefx2loadFW_dir}/${axefx2loadFW}
+$1 file ${udev_rules_dir}/${udev_rules}
+EOF
+}
+
+do_uninstall ()
+{
+	confirm_root
+	confirm_udev_rules_dir
+	rm -rf ${axefx2loadFW_dir}
+	rm -rf ${udev_rules_dir}/${udev_rules}
+	report Removed
+	notice Uninstall completed.
+}
+
+do_install ()
+{
+	confirm_root
+	confirm_kernel
+	confirm_fxload
+	confirm_license
+	confirm_firmware
+	confirm_udev_rules_dir
+	notice You must accept the Fractal Audio System USB Bootloader license.
+	prompt1 Press any key to read the license. Press q when done reading.
+	less ${HERE}/${license}
+	prompt1 Do you accept the license terms?
+	case ${answer} in
+		y|Y) notice Proceeding with installation. ;;
+		*) fail license not accepted ;;
+	esac
+	mkdir -m 755 -p ${axefx2loadFW_dir}
+	install -m 644 ${HERE}/${axefx2loadFW} ${axefx2loadFW_dir} \
+		|| fail Failed to install firmware file
+	fxload_path=$(whereis -b fxload|cut -d' ' -f2)
+	cat >${udev_rules_dir}/${udev_rules} <<EOF \
+		|| fail failed to create udev rules file
+# Fractal Audio Systems Axe-FX II
+ACTION=="add", SUBSYSTEM=="usb", ATTR{idVendor}=="2466", ATTR{idProduct}=="0003", RUN+="${fxload_path} -l -t fx2lp -I ${axefx2loadFW_dir}/${axefx2loadFW} -D \$env{DEVNAME}"
+EOF
+	chmod 644 ${udev_rules_dir}/${udev_rules}
+	report Installed
+	reload_udev_rules
+	notice Installation completed.
+	notice Reboot any Axe-FX II presently connected to this computer via USB.
+}
+
+while getopts ":r:iuv" option; do
+	case ${option} in
+		r) udev_rules_dir=${OPTARG} ;;
+		i) install_opt=YES ;;
+		u) uninstall_opt=YES ;;
+		v) echo ${PGM} ${VERSION}; exit ;;
+		*) help ;;
+	esac
+done
+
+[ -z "${install_opt}" -a -z "${uninstall_opt}" ] && help
+[ -n "${install_opt}" -a -n "${uninstall_opt}" ] && help
+[ -n "${install_opt}" ] && do_install
+[ -n "${uninstall_opt}" ] && do_uninstall

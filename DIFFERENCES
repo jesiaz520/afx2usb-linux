@@ -1,0 +1,21 @@
+Here is a summary of differences compared to Joachim Gahl's script, upon which
+this program is based:
+
+* No runtime prompts for paths.
+
+* Alternate udev rules directory may be specified on command line.
+
+* Default action is `help`, not `install`.
+
+* Checks for prerequisites (root user, Linux version, programs and directories,
+  etc.) before performing any action.
+
+* Requires that only one `fxload` program be accessible from standard paths.
+
+* Does not examine content of udev rule file.
+
+* May be run from outside of its own directory.
+
+* Reports directories and files installed or removed.
+
+* Has, and can report, a version number.
