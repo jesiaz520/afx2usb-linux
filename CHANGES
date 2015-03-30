@@ -1,1 +1,2 @@
 2015-03-21 1.0.0 Initial release.
+2015-03-30 1.0.1 Correct check for root privileges.

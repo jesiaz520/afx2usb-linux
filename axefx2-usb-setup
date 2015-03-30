@@ -37,7 +37,7 @@ prompt1 ()
 
 confirm_root ()
 {
-	[ "${USER}" = "root" ] || fail run as root
+	[ $(id -u) -eq 0 ] || fail run as root
 }
 
 confirm_kernel ()
