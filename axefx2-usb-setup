@@ -16,7 +16,7 @@ udev_rules_dir=/etc/udev/rules.d
 
 HERE=$(cd $(dirname ${0}) && pwd)
 PGM=$(basename ${0})
-VERSION=1.0.0
+VERSION=1.0.1
 
 fail ()
 {
