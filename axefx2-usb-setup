@@ -9,14 +9,15 @@
 # This program is based upon the work of Joachim Gahl.
 
 license=loader/FAS-License
-axefx2loadFW=loader/axefx2load.hex
+axefx2loadFW_file=axefx2load.hex
+axefx2loadFW=loader/${axefx2loadFW_file}
 axefx2loadFW_dir=/usr/share/usb/FractalAudio/axefx2
 udev_rules=55-fractalaudio.rules
 udev_rules_dir=/etc/udev/rules.d
 
 HERE=$(cd $(dirname ${0}) && pwd)
 PGM=$(basename ${0})
-VERSION=1.0.1
+VERSION=1.0.2
 
 fail ()
 {
@@ -53,7 +54,7 @@ confirm_kernel ()
 
 confirm_fxload ()
 {
-	[ -n "$(whereis -b  fxload|cut -d' ' -f2)" ] \
+	[ -n "$(whereis -b  fxload|cut -s -d' ' -f2)" ] \
 		|| fail fxload not found
 	[ -n "$(whereis -bu fxload|cut -d' ' -f2)" ] \
 		&& fail found multiple instances of fxload
@@ -94,6 +95,8 @@ Options:
 	-i    install
 	-u    uninstall
 	-v    report version and exit
+
+${PGM} ${VERSION}
 EOF
 	exit 1
 }
@@ -102,7 +105,7 @@ report ()
 {
 	cat <<EOF
 $1 directory ${axefx2loadFW_dir}
-$1 file ${axefx2loadFW_dir}/${axefx2loadFW}
+$1 file ${axefx2loadFW_dir}/${axefx2loadFW_file}
 $1 file ${udev_rules_dir}/${udev_rules}
 EOF
 }
@@ -140,7 +143,7 @@ do_install ()
 	cat >${udev_rules_dir}/${udev_rules} <<EOF \
 		|| fail failed to create udev rules file
 # Fractal Audio Systems Axe-FX II
-ACTION=="add", SUBSYSTEM=="usb", ATTR{idVendor}=="2466", ATTR{idProduct}=="0003", RUN+="${fxload_path} -l -t fx2lp -I ${axefx2loadFW_dir}/${axefx2loadFW} -D \$env{DEVNAME}"
+ACTION=="add", SUBSYSTEM=="usb", ATTR{idVendor}=="2466", ATTR{idProduct}=="0003", RUN+="${fxload_path} -l -t fx2lp -I ${axefx2loadFW_dir}/${axefx2loadFW_file} -D \$env{DEVNAME}"
 EOF
 	chmod 644 ${udev_rules_dir}/${udev_rules}
 	report Installed
