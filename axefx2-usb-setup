@@ -166,3 +166,4 @@ done
 [ -n "${install_opt}" -a -n "${uninstall_opt}" ] && help
 [ -n "${install_opt}" ] && do_install
 [ -n "${uninstall_opt}" ] && do_uninstall
+true
