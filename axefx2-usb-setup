@@ -1,4 +1,4 @@
-#! /bin/bash
+#! /bin/sh
 #
 # Install or uninstall the firmware and configuration files needed to enable
 # Linux to establish audio and MIDI connections with a Fractal Audio Systems
@@ -17,23 +17,24 @@ udev_rules_dir=/etc/udev/rules.d
 
 HERE=$(cd $(dirname ${0}) && pwd)
 PGM=$(basename ${0})
-VERSION=1.0.2
+VERSION=1.0.3
 
 fail ()
 {
-	echo -e "\n${PGM}: ${*}"
+	printf "\n${PGM}: ${*}\n"
 	exit 1
 }
 
 notice ()
 {
-	echo -e "\n${*}"
+	printf "\n${*}\n"
 }
 
 prompt1 ()
 {
-	echo -en "\n${*} "
-	read -n 1 answer
+	printf "\n${*} "
+	read answer
+	answer=`echo $answer | cut -c 1`
 }
 
 confirm_root ()
@@ -47,8 +48,8 @@ confirm_kernel ()
 	kv2=$(uname -r|cut -d. -f2)
 	kv3=$(uname -r|cut -d. -f3)
 	[ "${kv1}" -gt 2 ] || \
-	[ "${kv1}" -eq 2 -a "${kv2}" -gt 6 ] || \
-        [ "${kv1}" -eq 2 -a "${kv2}" -eq 6 -a "${kv3}" -ge 35 ] || \
+	( [ "${kv1}" -eq 2 ] && [ "${kv2}" -gt 6 ] ) || \
+        ( [ "${kv1}" -eq 2 ] && [ "${kv2}" -eq 6 ] && [ "${kv3}" -ge 35 ] ) || \
 		fail kernel is too old
 }
 
@@ -129,7 +130,7 @@ do_install ()
 	confirm_firmware
 	confirm_udev_rules_dir
 	notice You must accept the Fractal Audio System USB Bootloader license.
-	prompt1 Press any key to read the license. Press q when done reading.
+	prompt1 Press Enter to read the license. Press q when done reading.
 	less ${HERE}/${license}
 	prompt1 Do you accept the license terms?
 	case ${answer} in
@@ -162,8 +163,8 @@ while getopts ":r:iuv" option; do
 	esac
 done
 
-[ -z "${install_opt}" -a -z "${uninstall_opt}" ] && help
-[ -n "${install_opt}" -a -n "${uninstall_opt}" ] && help
+[ -z "${install_opt}" ] && [ -z "${uninstall_opt}" ] && help
+[ -n "${install_opt}" ] && [ -n "${uninstall_opt}" ] && help
 [ -n "${install_opt}" ] && do_install
 [ -n "${uninstall_opt}" ] && do_uninstall
 true
